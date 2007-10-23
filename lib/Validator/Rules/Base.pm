@@ -41,7 +41,7 @@ sub pattern	{
 	my $this = shift;
 	my $fieldValue 	= shift;
 	my $pattern		= shift;
-		
+	
 	my $res = ( $fieldValue =~ /$pattern/ );
 	return $res;		
 }
@@ -91,13 +91,20 @@ sub minlength {
 	return $res;
 }
 
+sub hash {
+	my $fieldValue 	= shift;
+	
+	my $res = ref $fieldValue eq 'HASH';
+	return $res;  
+}
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-Validator::Rules::Base - Perl extension for blah blah blah
+Validator::Rules::Base - Perl extension for field values validation
 
 =head1 SYNOPSIS
 

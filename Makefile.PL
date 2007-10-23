@@ -5,6 +5,10 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'Validator',
     VERSION_FROM      => 'lib/Validator.pm', # finds $VERSION
+    DEPENDENCIES	  => [ 
+    	'JSON::XS',
+    	'Class::Accessor::Fast',
+    ],	
     PREREQ_PM         => {}, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/Validator.pm', # retrieve abstract from module

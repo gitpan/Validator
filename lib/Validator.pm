@@ -4,27 +4,32 @@ use 5.008007;
 use strict;
 use warnings;
 
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+use JSON::XS qw(to_json);
+
+our %EXPORT_TAGS = (
+	'all' => [
+		qw(
+
+		  )
+	]
+);
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(
-	
+
 );
 
 our $VERSION = '0.01';
 
-
 # Example of array for validator settings
-#	fields = 
+#	fields =
 #	[
 #		{
 #			name: 'child_frm_1_txt1',
 #			required: 1,
 #			error: ErrorMessage,
-#			value: value				
+#			value: value
 #			rules: [
 #				{ rule: 'integer' },
 #				{ rule: 'maxlength', param: 3 }
@@ -44,75 +49,185 @@ our $VERSION = '0.01';
 #				{ rule: 'datetime', param:  'YYYY-MM-DD hh:mm'  }
 #			]
 #		},
-#		{		
+#		{
 #			name: 'child_frm_2_txt2',
 #			required: 1,
 #			rules: [
 #				{ rule: 'minlength', param: 2 },
-#				{ rule: 'maxlength', param: 5 }			
-#			]		
-#		}	
+#				{ rule: 'maxlength', param: 5 }
+#			]
+#		}
 #	]
 #*/
 
 use Validator::ErrorCode;
 use Validator::Rules::Base;
 
-use base 'Class::Accessor';
-__PACKAGE__->mk_accessors(qw/fields errorCount errorCode jsValidator/);
+use base 'Class::Accessor::Fast';
+__PACKAGE__->mk_accessors(qw/fields errorCount errorCode/);
+
+#sub init {
+#	my $this = shift;
+#	my %opt  = shift;
+#
+#	if ( keys %{ $opt{xmlCached} } >= 3 ) {
+#
+#	}
+#}
+
+sub clear {
+	my $this = shift;
+	
+	$this->fields();
+	$this->{errFields} = undef;	
+}
 
 sub isValid {
 	my $this = shift;
-	
+
 	my $rulesObj = Validator::Rules::Base->new();
-		
-	foreach my $f ( @{$this->fields} ) {
-		my $fieldName	= $f->{name};
-		my $required	= $f->{required};
-		my $fieldValue 	= $f->{value};
-		my $rules 		= $f->{rules};
-		my $count 		= 0;
+
+	foreach my $f ( @{ $this->fields } ) {
+		my $fieldName  = $f->{name};
+		my $required   = $f->{required};
+		my $fieldValue = $f->{value};
+		my $rules      = $f->{rules};
+		my $count      = 0;
+
 		# checking on required
-		if ( $required && $required == 1 && length($fieldValue)<1 ) {
-			$f->{error} = "Param $fieldName required" unless $f->{error}; 
+		if ( $required && $required == 1 && length($fieldValue) < 1 ) {
+			$f->{error} = "Param $fieldName required" unless $f->{error};
 			$this->appendErrField($f);
 			next;
-		} # END if ( $required eq '1' && !length($fieldValue) )	
-		foreach my $r ( @$rules ) {
+		}    # END if ( $required eq '1' && !length($fieldValue) )
+		foreach my $r (@$rules) {
 			my $func = $r->{rule};
-			my $res = $rulesObj->$func ( $fieldValue, $r->{param} );
+			my $res = $rulesObj->$func( $fieldValue, $r->{param} );
 			if ( !$res ) {
 				$f->{error} = "Wrong format for $fieldName" unless $f->{error};
 				$this->appendErrField($f);
-			} 
-		} # END foreach my $r ( keys %$rules )
-	} # END foreach my $f ( @{$this->fields} )
-	my $errors = ++$#{$this->{errFields}};	
-	if( $errors > 0 ) {
+			}
+		}    # END foreach my $r ( keys %$rules )
+	}    # END foreach my $f ( @{$this->fields} )
+	my $errors = ++$#{ $this->{errFields} };
+	if ( $errors > 0 ) {
 		my $err = Validator::ErrorCode->new();
-		
+
 		$err->errorCount($errors);
-		$err->errorFields($this->{errFields});
+		$err->errorFields( $this->{errFields} );
 		$err->errorMsg();
-		
+
 		return $err;
-	} # END if( $this->errCount() > 0 ) 
-		
+	}    # END if( $this->errCount() > 0 )
+
 	return 1;
 }
 
-sub appendField {
+sub xmlCached {
 	my $this = shift;
-	my $field = shift;
+	my %opt  = @_; # ( xmlFile => 'path/to/xml/file', xsdFile => '/path/to/xsd/file' )
 	
-	push @{$this->{fields}},$field;
+	foreach ( qw( xmlFile xsdFile ) ) {
+		die "Param $_ is required" unless $opt{$_};
+	} 
+		
+	use AGAVA::AGE::Framework::Library::XML::XPath::Cached;
+
+	# hopefully not having to parse the file speeds things up remarkably
+	my $xmlCached = AGAVA::AGE::Framework::Library::XML::XPath::Cached->new(
+		filename    => $opt{xmlFile},    
+		xsdFilename => $opt{xsdFile}
+	);
+
+	my $config = $xmlCached->toXMLSimple();
+	
+	$opt{convertMethod} = \&convertXMLSimpleToValidator unless $opt{convertMethod};
+	
+	$config = &{ $opt{convertMethod} }( $config );
+	
+	return $config;
+}
+
+sub appendField {
+	my $this  = shift;
+	my $field = shift;
+
+	push @{ $this->{fields} }, $field;
 }
 
 sub appendErrField {
-	my $this = shift;
+	my $this  = shift;
 	my $field = shift;
+
+	push @{ $this->{errFields} }, $field;
+}
+
+sub funcIsValidAsJS {
+	my $this     = shift;
+	my $formName = shift || '' ;
+
+	return unless $this->fields();
+
+	my $fieldsAsJSON = $this->fieldsAsJSON();
+
+	my $funcName = $formName . '_JSValidator';
+	my $func     = qq~
+<script language="javascript">
+    window.$funcName = function() {
+	    var validator = new Validator;
+	    var fields = $fieldsAsJSON;
+	    validator.SetForm(fields, '$formName');
+		validator.Process();
+		return validator.success;
+    }
+</script>
+~;
+
+	return $func;
+}
+
+sub fieldsAsJSON {
+	my $this = shift;
+
+	return unless $this->fields();
+
+	my $json = to_json( $this->fields() );
+
+	return $json;
+}
+
+sub convertXMLSimpleToValidator {
+	my $param = shift;
 	
-	push @{$this->{errFields}},$field;
+	my @res;
+	foreach my $field ( @{$param->{Field}} ) {
+		my (@rules,$hashref);
+		
+		foreach my $rule ( @{$field->{Rules}->[0]->{Rule}} ) {
+			$hashref = {
+				rule => $rule->{name},
+			};
+			$hashref->{param}	= $rule->{Param}->[0] if $rule->{Param}; 
+			push @rules, $hashref;	
+		}
+		$hashref = {
+			name	=>	$field->{Name}->[0],
+			value	=>	$field->{Value}->[0],
+			error	=>	$field->{ErrorString}->[0],
+			rules	=>	\@rules
+		};
+		
+		if ( $field->{Required}->[0] eq 'true') {
+			$hashref->{required} = 1;	
+		} 
+		else {
+			$hashref->{required} = 0;
+		}
+		
+		push @res,$hashref;
+	}
+	
+	return \@res;
 }
 
 1;
@@ -163,6 +278,7 @@ TODO
 =head1 SEE ALSO
 
 TODO
+Make validate HASH + ARRAY from xml
 
 =head1 AUTHOR
 

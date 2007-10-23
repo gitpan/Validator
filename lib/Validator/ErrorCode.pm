@@ -23,7 +23,7 @@ our @EXPORT = qw(
 
 our $VERSION = '0.01';
 
-use base 'Class::Accessor';
+use base 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(qw/errorCount errorFields errorMsg/);
 
 #  формат кода ошибки
@@ -34,7 +34,7 @@ sub errorMsg {
 	foreach ( @{$this->errorFields} ) {
 		$msg .= $_->{error}.'.' if ($_->{error});
 	}
-	$this->{errorMsq} = $msg;
+	$this->{errorMsg} = $msg;
 	return $msg;
 }
 
