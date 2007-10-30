@@ -1,0 +1,17 @@
+--- #YAML:1.0
+name:                Validator
+version:             0.01
+abstract:            Input params validator
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.36
+distribution_type:   module
+requires:     
+    AGAVA::AGE::Framework::Library::XML::XPath::Cached: 0
+    Class::Accessor::Fast:         0
+    JSON::XS:                      0
+    Mail::RFC822::Address:         0
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - Alex Nosoff <plcgi1@gmail.com>

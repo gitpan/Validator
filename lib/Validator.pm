@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use JSON::XS qw(to_json);
+use AGAVA::AGE::Framework::Library::XML::XPath::Cached;
 
 our %EXPORT_TAGS = (
 	'all' => [
@@ -22,63 +23,27 @@ our @EXPORT = qw(
 
 our $VERSION = '0.01';
 
-# Example of array for validator settings
-#	fields =
-#	[
-#		{
-#			name: 'child_frm_1_txt1',
-#			required: 1,
-#			error: ErrorMessage,
-#			value: value
-#			rules: [
-#				{ rule: 'integer' },
-#				{ rule: 'maxlength', param: 3 }
-#			]
-#		},
-#		{
-#			name: 'child_frm_1_txt2',
-#			required: 0,
-#			rules: [
-#				{ rule: 'email' },
-#			]
-#		},
-#		{
-#			name: 'child_frm_2_txt1',
-#			required: 1,
-#			rules: [
-#				{ rule: 'datetime', param:  'YYYY-MM-DD hh:mm'  }
-#			]
-#		},
-#		{
-#			name: 'child_frm_2_txt2',
-#			required: 1,
-#			rules: [
-#				{ rule: 'minlength', param: 2 },
-#				{ rule: 'maxlength', param: 5 }
-#			]
-#		}
-#	]
-#*/
-
 use Validator::ErrorCode;
 use Validator::Rules::Base;
-
+use Class::Accessor::Fast;
 use base 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(qw/fields errorCount errorCode/);
 
-#sub init {
-#	my $this = shift;
-#	my %opt  = shift;
-#
-#	if ( keys %{ $opt{xmlCached} } >= 3 ) {
-#
-#	}
-#}
+sub new {
+	my $class = shift;
+	my %opt = @_;
+	
+	my $this = $class->SUPER::new();
+	
+	bless $this,$class;
+	
+	return $this;
+}
 
 sub clear {
 	my $this = shift;
 	
-	$this->fields();
+	$this->fields([]);
 	$this->{errFields} = undef;	
 }
 
@@ -102,12 +67,19 @@ sub isValid {
 		}    # END if ( $required eq '1' && !length($fieldValue) )
 		foreach my $r (@$rules) {
 			my $func = $r->{rule};
+			
+			next if ( !$required && !$fieldValue );
+			
 			my $res = $rulesObj->$func( $fieldValue, $r->{param} );
 			if ( !$res ) {
 				$f->{error} = "Wrong format for $fieldName" unless $f->{error};
 				$this->appendErrField($f);
 			}
 		}    # END foreach my $r ( keys %$rules )
+		
+		if ( !$this->{errFields} ) {
+			$f->{value} = _filter($f->{value});
+		}
 	}    # END foreach my $f ( @{$this->fields} )
 	my $errors = ++$#{ $this->{errFields} };
 	if ( $errors > 0 ) {
@@ -125,14 +97,12 @@ sub isValid {
 
 sub xmlCached {
 	my $this = shift;
-	my %opt  = @_; # ( xmlFile => 'path/to/xml/file', xsdFile => '/path/to/xsd/file' )
+	my %opt  = @_; # ( xmlFile => 'path/to/xml/file', xsdFile => '/path/to/xsd/file', values => { fieldName => fieldValue } )
 	
 	foreach ( qw( xmlFile xsdFile ) ) {
 		die "Param $_ is required" unless $opt{$_};
 	} 
-		
-	use AGAVA::AGE::Framework::Library::XML::XPath::Cached;
-
+	
 	# hopefully not having to parse the file speeds things up remarkably
 	my $xmlCached = AGAVA::AGE::Framework::Library::XML::XPath::Cached->new(
 		filename    => $opt{xmlFile},    
@@ -230,6 +200,40 @@ sub convertXMLSimpleToValidator {
 	return \@res;
 }
 
+#------------------------------------------------------------------------------
+sub _filter {
+    my $str = shift;
+
+    if ( ref ( $str ) eq 'ARRAY' ) {
+        foreach ( @{$str} ) {
+            my $regexp = qr/\0|#|\&|"|<|>|\(|\)|\|/;
+            $str =~ s/($regexp)/_translateSymbols($1)/ge;
+        }
+    }
+    else {
+        my $regexp = qr/\0|#|\&|"|<|>|\(|\)|\|/;
+        $str =~ s/($regexp)/_translateSymbols($1)/ge if $str;
+    }
+
+    return $str;
+}
+
+#------------------------------------------------------------------------------
+sub _translateSymbols {
+    my $sym = shift;
+    if ( $sym eq "\0" ) { $sym= ''; }
+    elsif ( $sym eq '#' ) { $sym = '&#35;'; }
+    elsif ( $sym eq '&' ) { $sym = '&#38;'; }
+    elsif ( $sym eq '"' ) { $sym = '&quot;'; }
+    elsif ( $sym eq '<' ) { $sym = '&lt;'; }
+    elsif ( $sym eq '>' ) { $sym = '&gt;'; }
+    elsif ( $sym eq '|' ) { $sym = '&brvbar;'; }
+    elsif ( $sym eq '(' ) { $sym = '&#40;'; }
+    elsif ( $sym eq ')' ) { $sym = '&#41;'; }
+
+    return $sym;
+}
+#------------------------------------------------------------------------------
 1;
 
 1;
@@ -242,7 +246,7 @@ Validator - Input params validator
 =head1 SYNOPSIS
 
   	use Validator;
-  
+  	
   	my $fields = [
 		{
 			name		=>	'Integer',
@@ -267,6 +271,46 @@ Validator - Input params validator
 		$valid->errorMsg();
 	}		
 
+in JSON
+
+# Example of array for validator settings
+#	fields =
+#	[
+#		{
+#			name: 'child_frm_1_txt1',
+#			required: 1,
+#			error: ErrorMessage,
+#			value: value
+#			rules: [
+#				{ rule: 'integer' },
+#				{ rule: 'maxlength', param: 3 }
+#			]
+#		},
+#		{
+#			name: 'child_frm_1_txt2',
+#			required: 0,
+#			rules: [
+#				{ rule: 'email' },
+#			]
+#		},
+#		{
+#			name: 'child_frm_2_txt1',
+#			required: 1,
+#			rules: [
+#				{ rule: 'datetime', param:  'YYYY-MM-DD hh:mm'  }
+#			]
+#		},
+#		{
+#			name: 'child_frm_2_txt2',
+#			required: 1,
+#			rules: [
+#				{ rule: 'minlength', param: 2 },
+#				{ rule: 'maxlength', param: 5 }
+#			]
+#		}
+#	]
+#*/
+
 =head1 DESCRIPTION
 
 Class for input method validation by rules from Validator::Rules::Base 
@@ -278,7 +322,6 @@ TODO
 =head1 SEE ALSO
 
 TODO
-Make validate HASH + ARRAY from xml
 
 =head1 AUTHOR
 

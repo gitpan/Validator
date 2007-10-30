@@ -5,11 +5,12 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'Validator',
     VERSION_FROM      => 'lib/Validator.pm', # finds $VERSION
-    DEPENDENCIES	  => [ 
-    	'JSON::XS',
-    	'Class::Accessor::Fast',
-    ],	
-    PREREQ_PM         => {}, # e.g., Module::Name => 1.1
+    PREREQ_PM	  => { 
+    	'JSON::XS' => 0,
+    	'Class::Accessor::Fast' => 0,
+    	'Mail::RFC822::Address' => 0,
+    	'AGAVA::AGE::Framework::Library::XML::XPath::Cached' => 0
+    },	
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/Validator.pm', # retrieve abstract from module
        AUTHOR         => 'Alex Nosoff <plcgi1@gmail.com>') : ()),

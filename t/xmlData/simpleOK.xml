@@ -31,11 +31,11 @@
 	</Field>
 	<Field>
 		<Name>Pattern</Name>
-		<Value>Test string</Value>
+		<Value>Test string##</Value>
 		<Required>true</Required>
 		<Rules>
 			<Rule name="pattern">
-				<Param>^(Test string)$</Param>
+				<Param>^(Test string##)$</Param>
 			</Rule>
 		</Rules>
 	</Field>
@@ -46,6 +46,37 @@
 		<ErrorString>IP bad</ErrorString>
 		<Rules>
 			<Rule name="ip"></Rule>
+		</Rules>
+	</Field>
+	<Field>
+		<Name>TEXT</Name>
+		<Value>asds ФЫВ АПР ыывы $%^#></Value>
+		<Required>true</Required>
+		<ErrorString>Text bad</ErrorString>
+		<Rules>
+			<Rule name="anyText"></Rule>
+		</Rules>
+	</Field>
+	<Field>
+		<Name>Equals</Name>
+		<Value>1</Value>
+		<Required>true</Required>
+		<ErrorString>Equals bad</ErrorString>
+		<Rules>
+			<Rule name="equals">
+				<Param>1</Param>
+			</Rule>
+		</Rules>
+	</Field>
+	<Field>
+		<Name>NOTEquals</Name>
+		<Value>1</Value>
+		<Required>true</Required>
+		<ErrorString>Equals bad</ErrorString>
+		<Rules>
+			<Rule name="notEquals">
+				<Param>werwe</Param>
+			</Rule>
 		</Rules>
 	</Field>
 </p:FieldArray>

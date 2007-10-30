@@ -16,25 +16,40 @@ BEGIN { use_ok('Validator') }
 my $validator = Validator->new();
 ok( ref $validator eq 'Validator', "Validator->new()" );
 
-$validator->fields( getOK() );
-my $res = $validator->isValid();
-ok( $res == 1, "OK test $validator->isValid().Result: $res" );
+my $res;
+my $fields = getOK(); 
+foreach ( @$fields ) {
+	$validator->clear();
+	$validator->fields( [$_] );
+	$res = $validator->isValid();
+	ok( $res == 1, "OK test isValid().Result: $res.Name: $_->{name}.Value: $_->{value}" );	
+}
 
-$validator->fields(getBAD());
-$res = $validator->isValid();
-ok( ref $res eq 'Validator::ErrorCode',
-	"BAD test $validator->isValid().Result:$res " );
+$fields = getBAD();
+foreach ( @$fields ) {
+	$validator->clear();
+	$validator->fields([$_]);
+	$res = $validator->isValid();
+	ok( ref $res eq 'Validator::ErrorCode',
+		"BAD test isValid().Result:$res.Name: $_->{name}.Value: $_->{value} " );	
+}
 
-$validator->clear();
-$validator->fields($validator->xmlCached( %{getXMLCachedOpts()} ));
-$res = $validator->isValid();
-ok( $res == 1, "From xml+xsd - OK test $validator->isValid().Result: $res" );
+$fields = $validator->xmlCached( %{getXMLCachedOpts()} );
+foreach ( @$fields ) {
+	$validator->clear();
+	$validator->fields([$_]);
+	$res = $validator->isValid();
+	ok( $res == 1, "xml + xsd: OK test isValid().Result: $res.Name: $_->{name}.Value: $_->{value}" );	
+}
 
-$validator->clear();
-$validator->fields($validator->xmlCached( %{getXMLCachedOpts(1)} ));
-$res = $validator->isValid();
-ok( ref $res eq 'Validator::ErrorCode',
-	"From xsd+xml - BAD test $validator->isValid().Result:$res " );
+$fields = $validator->xmlCached( %{getXMLCachedOpts(1)} );
+foreach ( @$fields ) {
+	$validator->clear();
+	$validator->fields([$_]);
+	$res = $validator->isValid();
+	ok( ref $res eq 'Validator::ErrorCode',
+		"xml + xsd: BAD test isValid().Result:$res.Name: $_->{name}.Value: $_->{value} " );
+}		
 
 #print Dumper $validator->xmlCached( %{getXMLCachedOpts()} );
 
@@ -78,8 +93,8 @@ sub getOK {
 		{
 			name     => 'Pattern',
 			required => 1,
-			value    => 'Test string',
-			rules    => [ { rule => 'pattern', param => '^(Test string)$' }, ]
+			value    => 'Test string&&',
+			rules    => [ { rule => 'pattern', param => '^(Test string&&)$' }, ]
 		},
 		{
 			name     => 'IP',
@@ -88,14 +103,24 @@ sub getOK {
 			rules    => [ { rule => 'ip' }, ]
 		},
 		{
-			name  => 'Element',
-			value => [qw/1 2 qwe/],
-			rules => [ { rule => 'array' }, ]
+			name  => 'EMAIL',
+			value => 'plcgi1@gmail.com',
+			rules => [ { rule => 'email' }, ]
 		},
 		{
-			name  => 'Hash',
-			value => ( a => 'b' ),
-			rules => [ { rule => 'hash' }, ]
+			name  => 'AnyText',
+			value => 'фывыв АПРО е 123 <>^&*',
+			rules => [ { rule => 'anyText' }, ]
+		},
+		{
+			name  => 'Equals',
+			value => '1',
+			rules => [ { rule => 'equals', param => '1' }, ]
+		},
+		{
+			name  => 'NOTEquals',
+			value => '1',
+			rules => [ { rule => 'notEquals', param => '5' }, ]
 		}
 	];
 	return $inputValidatorOK;
@@ -103,6 +128,11 @@ sub getOK {
 
 sub getBAD {
 	my $inputValidatorBAD = [
+		{
+			name  => 'EMAIL',
+			value => '<script>@gmail.com',
+			rules => [ { rule => 'email' }, ]
+		},
 		{
 			name  => 'Integer',
 			error => 'Bad format for Integer',
@@ -150,14 +180,23 @@ sub getBAD {
 			rules    => [ { rule => 'ip' }, ]
 		},
 		{
-			name  => 'ElementAsArray',
-			value => 'a s ddd',
-			rules => [ { rule => 'array' }, ]
+			name  => 'AnyText',
+			value => 'фывыв АПРО е 123 <>^&*',
+			rules => [ 
+				{ rule => 'anyText' },
+				{ rule => 'minlength', param=>1 },
+				{ rule => 'maxlength', param=>3 },
+			]
 		},
 		{
-			name  => 'Hash',
-			value => 'a s ddd',
-			rules => [ { rule => 'hash' }, ]
+			name  => 'Equals',
+			value => '1',
+			rules => [ { rule => 'equals', param => 'rr' }, ]
+		},
+		{
+			name  => 'NOTEquals',
+			value => '1',
+			rules => [ { rule => 'notEquals', param => '1' }, ]
 		}
 	];
 	return $inputValidatorBAD;    

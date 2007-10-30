@@ -4,13 +4,8 @@ use 5.008007;
 use strict;
 use warnings;
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
+use  Mail::RFC822::Address qw(valid);
 
-# This allows declaration	use Validator::Rules::Base ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
 	
 ) ] );
@@ -54,31 +49,25 @@ sub ip {
 	return $res;
 }	
 
-sub object {
-	my $this 		= shift;
-	my $fieldValue 	= shift;
-	my $className	=	shift;
-	
-	my $res = ( $className eq ref $fieldValue );
-
-	return $res;
-}
-
-sub array {
-	my $this 		= shift;
+sub email {
+	my $this = shift;
 	my $fieldValue 	= shift;
 	
-	my $res = ( ref $fieldValue eq 'ARRAY' );
-
+	my $res = valid($fieldValue);
+	
 	return $res;
-}
-		
+}	
+
 sub maxlength {
 	my $this = shift;
 	my $fieldValue 	= shift;
 	my $maxLength 	= shift;
+	
+	unless ( $fieldValue =~/^[\p{IsDigit}]+$/) {
+		$fieldValue = length($fieldValue);
+	}
 		
-	my $res = ( length($fieldValue) <= $maxLength ) ;
+	my $res = ( $fieldValue <= $maxLength ) ;
 	return $res;		
 }
 		
@@ -86,21 +75,49 @@ sub minlength {
 	my $this = shift;
 	my $fieldValue 	= shift;
 	my $minLength 	= shift;
+	
+	unless ( $fieldValue =~/^[\p{IsDigit}]+$/) {
+		$fieldValue = length($fieldValue);
+	}
 		
-	my $res = ( length($fieldValue) >= $minLength ) ;
+	my $res = ( $fieldValue >= $minLength ) ;
 	return $res;
 }
 
-sub hash {
+sub anyText {
+	my $this = shift;
 	my $fieldValue 	= shift;
 	
-	my $res = ref $fieldValue eq 'HASH';
-	return $res;  
+	#my $re = q/^[\p{IsAlpha}|\p{IsDigit}|\p{IsSpace}|\p{IsS}|\p{IsP}|\p{IsZ}|\p{InCyrillic}]+$/;
+	
+	my $re = '.*';
+	
+	my $res = $this->pattern($fieldValue,$re);
+	
+	return $res;
 }
 
+sub equals {
+	my $this 	= shift;
+	my $value1 	= shift;
+	my $value2 	= shift;
+	
+	my $res = $value1 eq $value2;
+	
+	return $res;
+}
+
+sub notEquals {
+	my $this 	= shift;
+	my $value1 	= shift;
+	my $value2 	= shift;
+	
+	my $res = $this->equals($value1,$value2);
+	
+	return !$res;
+}
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
@@ -122,7 +139,6 @@ Blah blah blah.
 =head2 EXPORT
 
 None by default.
-
 
 
 =head1 SEE ALSO

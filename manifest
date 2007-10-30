@@ -1,8 +1,0 @@
-Changes
-Makefile.PL
-MANIFEST
-README
-t/Validator.t
-lib/Validator.pm
-lib/Validator/ErrorCode.pm
-lib/Validator/Rules/Base.pm

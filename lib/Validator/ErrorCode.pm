@@ -30,12 +30,18 @@ __PACKAGE__->mk_accessors(qw/errorCount errorFields errorMsg/);
 sub errorMsg {
 	my $this = shift;
 	
-	my $msg = '';
+	my @msg = ();
 	foreach ( @{$this->errorFields} ) {
-		$msg .= $_->{error}.'.' if ($_->{error});
+		push @msg,$_->{error} if ($_->{error});
 	}
-	$this->{errorMsg} = $msg;
-	return $msg;
+	$this->{errorMsg} = join '.',@msg;
+	return \@msg;
+}
+
+sub errorMsgAsString {
+	my $this = shift;
+	
+	return $this->{errorMsg};
 }
 
 sub errorCode {

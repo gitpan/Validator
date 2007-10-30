@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <xsd:schema 
-	xmlns:fv="simple"
+	xmlns:fv="form_validator"
 	xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-	targetNamespace="simple"
+	targetNamespace="form_validator"
 	xml:lang="en">
 
 	<xsd:annotation>
