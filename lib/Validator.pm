@@ -21,13 +21,13 @@ our @EXPORT = qw(
 
 );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Validator::ErrorCode;
 use Validator::Rules::Base;
 use Class::Accessor::Fast;
 use base 'Class::Accessor::Fast';
-__PACKAGE__->mk_accessors(qw/fields errorCount errorCode/);
+__PACKAGE__->mk_accessors(qw/fields errorCount errorCode rulesObj/);
 
 sub new {
 	my $class = shift;
@@ -37,7 +37,21 @@ sub new {
 	
 	bless $this,$class;
 	
+	$this->init(%opt);
+	
 	return $this;
+}
+
+sub init {
+	my $this = shift;
+	my %opt = @_;
+	
+	if ( $opt{rulesObj} ) {
+		$this->rulesObj($opt{rulesObj});
+	}
+	else {
+		$this->rulesObj(Validator::Rules::Base->new());
+	}
 }
 
 sub clear {
@@ -50,7 +64,7 @@ sub clear {
 sub isValid {
 	my $this = shift;
 
-	my $rulesObj = Validator::Rules::Base->new();
+	my $rulesObj = $this->rulesObj();
 
 	foreach my $f ( @{ $this->fields } ) {
 		my $fieldName  = $f->{name};
@@ -95,9 +109,11 @@ sub isValid {
 	return 1;
 }
 
+#------------------------------------------------------------------------------------------------
+#--- in: ( xmlFile => 'path/to/xml/file', xsdFile => '/path/to/xsd/file', values => { fieldName => fieldValue }, convertMethod => \&methodName )
 sub xmlCached {
 	my $this = shift;
-	my %opt  = @_; # ( xmlFile => 'path/to/xml/file', xsdFile => '/path/to/xsd/file', values => { fieldName => fieldValue } )
+	my %opt  = @_;  
 	
 	foreach ( qw( xmlFile xsdFile ) ) {
 		die "Param $_ is required" unless $opt{$_};
@@ -271,45 +287,6 @@ Validator - Input params validator
 		$valid->errorMsg();
 	}		
 
-in JSON
-
-# Example of array for validator settings
-#	fields =
-#	[
-#		{
-#			name: 'child_frm_1_txt1',
-#			required: 1,
-#			error: ErrorMessage,
-#			value: value
-#			rules: [
-#				{ rule: 'integer' },
-#				{ rule: 'maxlength', param: 3 }
-#			]
-#		},
-#		{
-#			name: 'child_frm_1_txt2',
-#			required: 0,
-#			rules: [
-#				{ rule: 'email' },
-#			]
-#		},
-#		{
-#			name: 'child_frm_2_txt1',
-#			required: 1,
-#			rules: [
-#				{ rule: 'datetime', param:  'YYYY-MM-DD hh:mm'  }
-#			]
-#		},
-#		{
-#			name: 'child_frm_2_txt2',
-#			required: 1,
-#			rules: [
-#				{ rule: 'minlength', param: 2 },
-#				{ rule: 'maxlength', param: 5 }
-#			]
-#		}
-#	]
-#*/
 
 =head1 DESCRIPTION
 
@@ -337,3 +314,7 @@ at your option, any later version of Perl 5 you may have available.
 
 
 =cut
+
+use Data::Dumper;
+my $dd = Data::Dumper->new([]);
+warn "\n\n".__PACKAGE__." line ".__LINE__.$dd->Dump()."\n\n";
